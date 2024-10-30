@@ -1,0 +1,48 @@
+stages:
+  - setup
+  - e2e_tests
+  - load_tests
+
+variables:
+  NODE_ENV: test
+
+# Configuração do estágio de setup para instalar as dependências
+setup_environment:
+  stage: setup
+  image: node:14
+  script:
+    - npm install
+  artifacts:
+    paths:
+      - node_modules
+  cache:
+    paths:
+      - node_modules
+
+# Configuração do estágio de testes E2E com Cypress
+e2e_tests:
+  stage: e2e_tests
+  image: cypress/included:8.5.0
+  dependencies:
+    - setup_environment
+  script:
+    - npm run cypress:run  # Executa os testes Cypress
+    - npm run cypress:report  # Gera o relatório consolidado
+  artifacts:
+    paths:
+      - cypress/reports/finalReport  # Inclui o relatório final como artefato
+  when: on_success
+
+# Configuração do estágio de testes de carga com K6
+load_tests:
+  stage: load_tests
+  image: loadimpact/k6  # Imagem do K6 para testes de carga
+  dependencies:
+    - setup_environment
+  script:
+    - npm run load_tests:k6 
+    - npm run stress_tests:k6 
+  artifacts:
+    paths:
+      - reports/k6
+  when: on_success
